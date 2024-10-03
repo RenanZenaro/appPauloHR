@@ -40,12 +40,12 @@ const DetailScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.detailText}>Texto: {item.text}</Text>
+      <Text style={styles.detailText}>Cliente: {item.text}</Text>
       <Text style={styles.detailText}>Criado em: {item.createdAt}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Adicionar nova string"
+        placeholder="Adicionar algo novo"
         value={newString}
         onChangeText={setNewString}
       />

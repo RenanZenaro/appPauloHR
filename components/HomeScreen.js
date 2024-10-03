@@ -56,11 +56,11 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        placeholder="Novo item"
+        placeholder="Novo Cliente"
         value={item}
         onChangeText={setItem}
       />
-      <Button title="Adicionar Item" onPress={addItem} />
+      <Button title="Adicionar Cliente" onPress={addItem} />
 
       <FlatList
         data={list}
