@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@notepad_items';
@@ -24,26 +24,43 @@ const HomeScreen = ({ navigation }) => {
 
   const saveItems = async (newList) => {
     try {
-      const jsonValue = JSON.stringify(newList);
-      await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
     } catch (e) {
       console.error(e);
     }
   };
 
   const addItem = () => {
-    if (item) {
+    if (item.trim()) {
       const newItem = {
         id: Date.now().toString(),
         text: item,
         createdAt: new Date().toLocaleString(),
-        sublist: [],
       };
       const updatedList = [...list, newItem];
       setList(updatedList);
       saveItems(updatedList);
       setItem('');
     }
+  };
+
+  const confirmRemoveItem = (id) => {
+    Alert.alert(
+      'Confirmação',
+      'Você tem certeza que deseja remover este cliente?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeItem(id),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const removeItem = (id) => {
@@ -60,7 +77,9 @@ const HomeScreen = ({ navigation }) => {
         value={item}
         onChangeText={setItem}
       />
-      <Button title="Adicionar" onPress={addItem} color="#4CAF50" />
+      <TouchableOpacity style={styles.addButton} onPress={addItem}>
+        <Text style={styles.addButtonText}>Adicionar</Text>
+      </TouchableOpacity>
 
       <FlatList
         data={list}
@@ -69,10 +88,8 @@ const HomeScreen = ({ navigation }) => {
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => navigation.navigate('Detail', { item })}>
             <View style={styles.itemContainer}>
-              <Text style={styles.itemText}>
-                {item.text} - Criado em: {item.createdAt}
-              </Text>
-              <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.removeButton}>
+              <Text style={styles.itemText}>{item.text} - Criado em: {item.createdAt}</Text>
+              <TouchableOpacity onPress={() => confirmRemoveItem(item.id)} style={styles.removeButton}>
                 <Text style={styles.removeButtonText}>Remover</Text>
               </TouchableOpacity>
             </View>
@@ -96,6 +113,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 15,
     backgroundColor: '#fff',
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
   itemContainer: {

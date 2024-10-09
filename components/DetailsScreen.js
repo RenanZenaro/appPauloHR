@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY_PREFIX = '@notepad_item_';
@@ -37,6 +37,25 @@ const DetailScreen = ({ route }) => {
       setNewString('');
       await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${item.id}`, JSON.stringify(updatedStrings));
     }
+  };
+
+  const confirmRemoveString = (index) => {
+    Alert.alert(
+      'Confirmação',
+      'Você tem certeza que deseja remover esta anotação?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeString(index),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const removeString = async (index) => {
@@ -81,7 +100,7 @@ const DetailScreen = ({ route }) => {
               <TouchableOpacity onPress={() => editString(index)}>
                 <Text style={styles.editText}>Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => removeString(index)}>
+              <TouchableOpacity onPress={() => confirmRemoveString(index)}>
                 <Text style={styles.removeText}>Remover</Text>
               </TouchableOpacity>
             </View>
@@ -148,14 +167,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
     color: '#555',
+    marginRight: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 5,
   },
   editText: {
     color: '#007BFF',
-    marginRight: 15,
+    marginRight: 10,
     fontWeight: 'bold',
   },
   removeText: {
