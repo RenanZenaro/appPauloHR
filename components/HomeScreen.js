@@ -86,14 +86,15 @@ const HomeScreen = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         style={styles.list}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('Detail', { item })}>
-            <View style={styles.itemContainer}>
-              <Text style={styles.itemText}>{item.text} - Criado em: {item.createdAt}</Text>
-              <TouchableOpacity onPress={() => confirmRemoveItem(item.id)} style={styles.removeButton}>
-                <Text style={styles.removeButtonText}>Remover</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.itemContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('Detail', { item })} style={styles.itemContent}>
+              <Text style={styles.itemText}>{item.text}</Text>
+              <Text style={styles.itemDate}>Criado em: {item.createdAt}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => confirmRemoveItem(item.id)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>Remover</Text>
+            </TouchableOpacity>
+          </View>
         )}
       />
     </View>
@@ -148,10 +149,17 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  itemText: {
+  itemContent: {
     flex: 1,
-    fontSize: 16,
+  },
+  itemText: {
+    fontSize: 18,
     color: '#333',
+  },
+  itemDate: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 4,
   },
   removeButton: {
     backgroundColor: '#ff4d4d',
