@@ -87,7 +87,7 @@ const HomeScreen = ({ navigation }) => {
         style={styles.list}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate('Detail', { item })} style={styles.itemContent}>
+            <TouchableOpacity onPress={() => navigation.navigate('Instrument', { item })} style={styles.itemContent}>
               <Text style={styles.itemText}>{item.text}</Text>
               <Text style={styles.itemDate}>Criado em: {item.createdAt}</Text>
             </TouchableOpacity>
@@ -122,11 +122,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
   },
   addButtonText: {
     color: '#fff',
@@ -143,11 +138,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
   },
   itemContent: {
     flex: 1,
