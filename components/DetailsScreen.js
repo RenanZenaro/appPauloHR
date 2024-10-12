@@ -1,49 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY_PREFIX = '@notepad_instrument_details_';
 
 const DetailScreen = ({ route }) => {
-  const { item, instruments } = route.params;
-  const [notes, setNotes] = useState('');
-  const [additionalNotes, setAdditionalNotes] = useState([]);
+  const { instrument } = route.params; // Mantém apenas o instrumento
+  const [note, setNote] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(-1); // Índice da anotação sendo editada
+
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${instrument.name}`);
+        if (jsonValue) {
+          setNotes(JSON.parse(jsonValue));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadNotes();
+  }, [instrument.name]);
+
+  const saveNotes = async (newNotes) => {
+    try {
+      await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${instrument.name}`, JSON.stringify(newNotes));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const addNote = () => {
-    if (notes.trim()) {
-      setAdditionalNotes([...additionalNotes, notes]);
-      setNotes('');
+    if (note.trim()) {
+      const updatedNotes = editingIndex === -1 ? [...notes, note] : notes.map((n, i) => (i === editingIndex ? note : n));
+      setNotes(updatedNotes);
+      saveNotes(updatedNotes);
+      setNote('');
+      setEditingIndex(-1); // Resetar o índice de edição
     }
+  };
+
+  const confirmRemoveNote = (index) => {
+    Alert.alert(
+      'Confirmação',
+      'Você tem certeza que deseja remover esta anotação?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeNote(index),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const removeNote = async (index) => {
+    const updatedNotes = notes.filter((_, i) => i !== index);
+    setNotes(updatedNotes);
+    await saveNotes(updatedNotes);
+  };
+
+  const editNote = (index) => {
+    setNote(notes[index]);
+    setEditingIndex(index);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.detailText}>Cliente: {item.text}</Text>
-      <Text style={styles.detailText}>Criado em: {item.createdAt}</Text>
-
-      <Text style={styles.detailText}>Instrumentos:</Text>
-      {instruments.length > 0 ? (
-        instruments.map((instrument, index) => (
-          <Text key={index} style={styles.instrumentText}>{instrument}</Text>
-        ))
-      ) : (
-        <Text style={styles.noInstrumentsText}>Nenhum instrumento adicionado.</Text>
-      )}
+      {/* Exibindo apenas o nome do instrumento */}
+      <Text style={styles.detailText}>{instrument.name}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Adicionar Nota"
-        value={notes}
-        onChangeText={setNotes}
+        placeholder="Adicionar anotação"
+        value={note}
+        onChangeText={setNote}
       />
       
       <TouchableOpacity style={styles.addButton} onPress={addNote}>
-        <Text style={styles.addButtonText}>Adicionar Nota</Text>
+        <Text style={styles.addButtonText}>{editingIndex === -1 ? 'Adicionar Anotação' : 'Atualizar'}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.notesTitle}>Notas Adicionadas:</Text>
+      {/* Espaçamento adicionado entre o botão e o título */}
+      <Text style={styles.additionalStringsTitle}>Anotações Adicionadas:</Text>
       <FlatList
-        data={additionalNotes}
+        data={notes}
         keyExtractor={(note, index) => index.toString()}
-        renderItem={({ item }) => (
-          <Text style={styles.noteText}>{item}</Text>
+        renderItem={({ item, index }) => (
+          <View style={styles.noteContainer}>
+            <Text style={styles.noteText}>{item}</Text>
+            <View style={styles.noteActions}>
+              <TouchableOpacity onPress={() => editNote(index)}>
+                <Text style={styles.editText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => confirmRemoveNote(index)}>
+                <Text style={styles.removeText}>Remover</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
       />
     </View>
@@ -57,47 +118,64 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4f8',
   },
   detailText: {
-    fontSize: 20,
+    fontSize: 24,
     marginBottom: 15,
     fontWeight: 'bold',
     color: '#333',
-  },
-  instrumentText: {
-    fontSize: 16,
-    color: '#555',
-  },
-  noInstrumentsText: {
-    color: '#888',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
+    marginBottom: 10,
     padding: 15,
     backgroundColor: '#fff',
     fontSize: 16,
-    marginBottom: 10,
   },
   addButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 8,
-    padding: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     alignItems: 'center',
+    marginBottom: 20,
   },
   addButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
-  notesTitle: {
-    fontSize: 22,
-    marginTop: 20,
-    marginBottom: 10,
+  additionalStringsTitle: {
+    fontSize: 20,
+    marginVertical: 10,
     fontWeight: 'bold',
     color: '#333',
   },
+  noteContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
   noteText: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: 17,
+    flex: 1,
+    color: '#333',
+    marginRight: 10,
+  },
+  noteActions: {
+    flexDirection: 'row',
+  },
+  editText: {
+    color: '#3498db',
+    marginRight: 10,
+    fontWeight: 'bold',
+  },
+  removeText: {
+    color: '#ff4d4d',
+    fontWeight: 'bold',
   },
 });
 
