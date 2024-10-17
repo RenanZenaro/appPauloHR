@@ -85,10 +85,8 @@ const InstrumentScreen = ({ route, navigation }) => {
         <Text style={styles.addButtonText}>Adicionar</Text>
       </TouchableOpacity>
 
-      {/* Espaçamento entre o botão e o título */}
       <Text style={styles.subtitle}>Instrumentos Adicionados:</Text>
 
-      {/* Espaçamento entre o título e os cards */}
       <FlatList
         data={instruments}
         keyExtractor={(instr, index) => index.toString()}

@@ -1,48 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const STORAGE_KEY_PREFIX = '@notepad_instrument_details_';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { getDatabase } from './database'; // Importando o banco de dados
 
 const DetailScreen = ({ route }) => {
   const { instrument } = route.params;
   const [note, setNote] = useState('');
   const [notes, setNotes] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(-1);
+  const db = getDatabase();
 
   useEffect(() => {
-    const loadNotes = async () => {
-      try {
-        const jsonValue = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${instrument.name}`);
-        if (jsonValue) {
-          setNotes(JSON.parse(jsonValue));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
     loadNotes();
-  }, [instrument.name]);
+  }, [instrument.id]);
 
-  const saveNotes = async (newNotes) => {
-    try {
-      await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${instrument.name}`, JSON.stringify(newNotes));
-    } catch (e) {
-      console.error(e);
-    }
+  const loadNotes = () => {
+    db.transaction(tx => {
+      tx.executeSql('SELECT * FROM notes WHERE instrumentId = ?', [instrument.id], (_, { rows }) => {
+        const notesArray = [];
+        for (let i = 0; i < rows.length; i++) {
+          notesArray.push(rows.item(i));
+        }
+        setNotes(notesArray);
+      });
+    });
   };
 
-  const addNote = () => {
+  const saveNote = () => {
     if (note.trim()) {
-      const updatedNotes = editingIndex === -1 ? [...notes, note] : notes.map((n, i) => (i === editingIndex ? note : n));
-      setNotes(updatedNotes);
-      saveNotes(updatedNotes);
-      setNote('');
-      setEditingIndex(-1);
+      db.transaction(tx => {
+        tx.executeSql('INSERT INTO notes (content, instrumentId) VALUES (?, ?)', [note, instrument.id], () => {
+          loadNotes();
+          setNote('');
+        }, (_, error) => {
+          console.error('Error inserting note:', error);
+        });
+      });
+    } else {
+      Alert.alert('Erro', 'Por favor, insira uma anotação.');
     }
   };
 
-  const confirmRemoveNote = (index) => {
+  const confirmRemoveNote = (id) => {
     Alert.alert(
       'Confirmação',
       'Você tem certeza que deseja remover esta anotação?',
@@ -53,7 +50,7 @@ const DetailScreen = ({ route }) => {
         },
         {
           text: 'Remover',
-          onPress: () => removeNote(index),
+          onPress: () => removeNote(id),
           style: 'destructive',
         },
       ],
@@ -61,15 +58,17 @@ const DetailScreen = ({ route }) => {
     );
   };
 
-  const removeNote = async (index) => {
-    const updatedNotes = notes.filter((_, i) => i !== index);
-    setNotes(updatedNotes);
-    await saveNotes(updatedNotes);
+  const removeNote = (id) => {
+    db.transaction(tx => {
+      tx.executeSql('DELETE FROM notes WHERE id = ?', [id], loadNotes, (_, error) => {
+        console.error('Error deleting note:', error);
+      });
+    });
   };
 
-  const editNote = (index) => {
-    setNote(notes[index]);
-    setEditingIndex(index);
+  const editNote = (note) => {
+    setNote(note.content);
+    // Optionally handle editing logic
   };
 
   return (
@@ -82,23 +81,23 @@ const DetailScreen = ({ route }) => {
         value={note}
         onChangeText={setNote}
       />
-      
-      <TouchableOpacity style={styles.addButton} onPress={addNote}>
-        <Text style={styles.addButtonText}>{editingIndex === -1 ? 'Adicionar Anotação' : 'Atualizar'}</Text>
+
+      <TouchableOpacity style={styles.addButton} onPress={saveNote}>
+        <Text style={styles.addButtonText}>Adicionar Anotação</Text>
       </TouchableOpacity>
 
-      <Text style={styles.additionalStringsTitle}>Anotações Adicionadas:</Text>
+      <Text style={styles.notesTitle}>Anotações:</Text>
       <FlatList
         data={notes}
-        keyExtractor={(note, index) => index.toString()}
-        renderItem={({ item, index }) => (
+        keyExtractor={(note) => note.id.toString()}
+        renderItem={({ item }) => (
           <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>{item}</Text>
+            <Text style={styles.noteText}>{item.content}</Text>
             <View style={styles.noteActions}>
-              <TouchableOpacity onPress={() => editNote(index)}>
+              <TouchableOpacity onPress={() => editNote(item)}>
                 <Text style={styles.editText}>Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => confirmRemoveNote(index)}>
+              <TouchableOpacity onPress={() => confirmRemoveNote(item.id)}>
                 <Text style={styles.removeText}>Remover</Text>
               </TouchableOpacity>
             </View>
@@ -143,7 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  additionalStringsTitle: {
+  notesTitle: {
     fontSize: 20,
     marginVertical: 10,
     fontWeight: 'bold',
