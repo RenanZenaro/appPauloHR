@@ -81,6 +81,8 @@ const HomeScreen = ({ navigation }) => {
         <Text style={styles.addButtonText}>Adicionar</Text>
       </TouchableOpacity>
 
+      <Text style={styles.subtitle}>Clientes Adicionados:</Text>
+
       <FlatList
         data={list}
         keyExtractor={(item) => item.id}
@@ -122,11 +124,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
+    marginBottom: 20,
   },
   addButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  subtitle: {
+    fontSize: 20,
+    marginVertical: 10,
+    fontWeight: 'bold',
+    color: '#333',
   },
   itemContainer: {
     marginBottom: 15,
@@ -161,7 +170,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   list: {
-    marginTop: 20,
+    marginTop: 5,
   },
 });
 
