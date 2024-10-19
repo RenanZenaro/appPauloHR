@@ -1,45 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { getDatabase } from '../database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY_PREFIX = '@notepad_instruments_';
 
 const InstrumentScreen = ({ route, navigation }) => {
-  const { clientId, clientName } = route.params;
-  const [instrumentName, setInstrumentName] = useState('');
+  const { item } = route.params;
+  const [instrument, setInstrument] = useState('');
   const [instruments, setInstruments] = useState([]);
-  const db = getDatabase();
 
   useEffect(() => {
-    loadInstruments();
-  }, [clientId]);
-
-  const loadInstruments = () => {
-    db.transaction(tx => {
-      tx.executeSql('SELECT * FROM instruments WHERE clientId = ?', [clientId], (_, { rows }) => {
-        const instrumentsArray = [];
-        for (let i = 0; i < rows.length; i++) {
-          instrumentsArray.push(rows.item(i));
+    const loadInstruments = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${item.id}`);
+        if (jsonValue) {
+          setInstruments(JSON.parse(jsonValue));
         }
-        setInstruments(instrumentsArray);
-      });
-    });
-  };
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadInstruments();
+  }, [item.id]);
 
-  const addInstrument = () => {
-    if (instrumentName.trim()) {
-      db.transaction(tx => {
-        tx.executeSql('INSERT INTO instruments (name, clientId) VALUES (?, ?)', [instrumentName, clientId], () => {
-          loadInstruments();
-          setInstrumentName('');
-        }, (_, error) => {
-          console.error('Error inserting instrument:', error);
-        });
-      });
-    } else {
-      Alert.alert('Erro', 'Por favor, insira um nome de instrumento.');
+  const saveInstruments = async (newInstruments) => {
+    try {
+      await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${item.id}`, JSON.stringify(newInstruments));
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const confirmRemoveInstrument = (id) => {
+  const addInstrument = () => {
+    if (instrument.trim()) {
+      const newInstrument = { 
+        name: instrument, 
+        notes: [], 
+        createdAt: new Date().toISOString()
+      };
+      const updatedInstruments = [...instruments, newInstrument];
+      setInstruments(updatedInstruments);
+      saveInstruments(updatedInstruments);
+      setInstrument('');
+    }
+  };
+
+  const confirmRemoveInstrument = (index) => {
     Alert.alert(
       'Confirmação',
       'Você tem certeza que deseja remover este instrumento?',
@@ -50,7 +56,7 @@ const InstrumentScreen = ({ route, navigation }) => {
         },
         {
           text: 'Remover',
-          onPress: () => removeInstrument(id),
+          onPress: () => removeInstrument(index),
           style: 'destructive',
         },
       ],
@@ -58,41 +64,49 @@ const InstrumentScreen = ({ route, navigation }) => {
     );
   };
 
-  const removeInstrument = (id) => {
-    db.transaction(tx => {
-      tx.executeSql('DELETE FROM instruments WHERE id = ?', [id], loadInstruments, (_, error) => {
-        console.error('Error deleting instrument:', error);
-      });
-    });
+  const removeInstrument = async (index) => {
+    const updatedInstruments = instruments.filter((_, i) => i !== index);
+    setInstruments(updatedInstruments);
+    await saveInstruments(updatedInstruments);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{clientName}</Text>
+      <Text style={styles.title}>{item.text}</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Adicionar Instrumento"
-        value={instrumentName}
-        onChangeText={setInstrumentName}
+        value={instrument}
+        onChangeText={setInstrument}
       />
       
       <TouchableOpacity style={styles.addButton} onPress={addInstrument}>
         <Text style={styles.addButtonText}>Adicionar</Text>
       </TouchableOpacity>
 
+      <Text style={styles.subtitle}>Instrumentos Adicionados:</Text>
+
       <FlatList
         data={instruments}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate('Detail', { instrument: item })}>
-              <Text style={styles.itemText}>{item.name}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => confirmRemoveInstrument(item.id)}>
-              <Text style={styles.removeButtonText}>Remover</Text>
-            </TouchableOpacity>
-          </View>
+        keyExtractor={(instr, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate('Detail', { item, instrument: item })}
+          >
+            <View style={styles.cardContent}>
+              <View>
+                <Text style={styles.instrumentText}>{item.name}</Text>
+                <Text style={styles.createdAtText}>
+                  Criado em: {new Date(item.createdAt).toLocaleString()}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => confirmRemoveInstrument(index)}>
+                <Text style={styles.removeText}>Remover</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
         )}
       />
     </View>
@@ -133,23 +147,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  itemContainer: {
+  subtitle: {
+    fontSize: 20,
+    marginVertical: 10,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
   },
-  itemText: {
+  instrumentText: {
     fontSize: 18,
     color: '#333',
   },
-  removeButtonText: {
-    color: '#ff4d4d',
+  createdAtText: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 4,
+  },
+  removeText: {
+    backgroundColor: '#ff4d4d',
+    borderRadius: 5,
+    padding: 8,
+    color: '#fff',
     fontWeight: 'bold',
   },
 });
