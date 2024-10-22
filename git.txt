@@ -2,5 +2,10 @@ git config --global user.name RenanZenaro
 git config --global user.email renanzenaro@hotmail.com
 
 
+npm install -g eas-cli
+npm install -g expo-cli
+npx eas login (fazer o login na conta do expo)
+npx eas build:configure (configurar o eas.json)
+
 baixar o app em apk:
 eas build -p android --profile preview
