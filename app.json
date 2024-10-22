@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "apppaulohr",
+    "name": "Luthier",
     "slug": "snack-a8fc75b8-cb7b-475f-9413-82d10bfe1721",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logoViolao.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -16,12 +16,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logoViolao.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.renan_z.snacka8fc75b8cb7b475f941382d10bfe1721"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logoFavicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1573e1a3-29c8-4126-9896-af505ce42ee8"
+      }
     }
   }
 }
