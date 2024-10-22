@@ -1,2 +1,6 @@
 git config --global user.name RenanZenaro
 git config --global user.email renanzenaro@hotmail.com
+
+
+baixar o app em apk:
+eas build -p android --profile preview
