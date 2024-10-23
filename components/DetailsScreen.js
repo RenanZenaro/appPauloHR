@@ -34,7 +34,7 @@ const DetailScreen = ({ route }) => {
 
   const addNote = () => {
     if (note.trim()) {
-      const updatedNotes = editingIndex === -1 ? [...notes, note] : notes.map((n, i) => (i === editingIndex ? note : n));
+      const updatedNotes = editingIndex === -1 ? [note, ...notes] : notes.map((n, i) => (i === editingIndex ? note : n));
       setNotes(updatedNotes);
       saveNotes(updatedNotes);
       setNote('');

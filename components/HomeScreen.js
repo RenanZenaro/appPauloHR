@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const STORAGE_KEY = '@notepad_items';
 
 const HomeScreen = ({ navigation }) => {
   const [item, setItem] = useState('');
   const [list, setList] = useState([]);
+  const [filteredList, setFilteredList] = useState([]);
 
   useEffect(() => {
     const loadItems = async () => {
       try {
         const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
         if (jsonValue) {
-          setList(JSON.parse(jsonValue));
+          const items = JSON.parse(jsonValue);
+          setList(items);
+          setFilteredList(items); // Inicialmente, mostre todos os itens
         }
       } catch (e) {
         console.error(e);
@@ -21,6 +25,12 @@ const HomeScreen = ({ navigation }) => {
     };
     loadItems();
   }, []);
+
+  useEffect(() => {
+    if (item.trim() === '') {
+      setFilteredList(list); // Mostrar todos os itens se o texto estiver vazio
+    }
+  }, [item]); // Executar quando `item` mudar
 
   const saveItems = async (newList) => {
     try {
@@ -37,10 +47,18 @@ const HomeScreen = ({ navigation }) => {
         text: item,
         createdAt: new Date().toLocaleString(),
       };
-      const updatedList = [...list, newItem];
+      const updatedList = [newItem, ...list];
       setList(updatedList);
+      setFilteredList(updatedList); // Atualiza a lista filtrada
       saveItems(updatedList);
       setItem('');
+    }
+  };
+
+  const searchItems = () => {
+    if (item.trim() !== '') {
+      const filtered = list.filter((i) => i.text.toLowerCase().includes(item.toLowerCase()));
+      setFilteredList(filtered);
     }
   };
 
@@ -66,17 +84,23 @@ const HomeScreen = ({ navigation }) => {
   const removeItem = (id) => {
     const updatedList = list.filter((i) => i.id !== id);
     setList(updatedList);
+    setFilteredList(updatedList); // Atualiza a lista filtrada
     saveItems(updatedList);
   };
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Novo Cliente"
-        value={item}
-        onChangeText={setItem}
-      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Novo Cliente"
+          value={item}
+          onChangeText={setItem} // Atualiza o texto no campo de entrada
+        />
+        <TouchableOpacity onPress={searchItems} style={styles.iconContainer}>
+          <Icon name="search" size={20} color="#888" />
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity style={styles.addButton} onPress={addItem}>
         <Text style={styles.addButtonText}>Adicionar</Text>
       </TouchableOpacity>
@@ -84,7 +108,7 @@ const HomeScreen = ({ navigation }) => {
       <Text style={styles.subtitle}>Clientes Adicionados:</Text>
 
       <FlatList
-        data={list}
+        data={filteredList}
         keyExtractor={(item) => item.id}
         style={styles.list}
         renderItem={({ item }) => (
@@ -109,13 +133,21 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f8f9fa',
   },
-  input: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     marginBottom: 10,
-    padding: 15,
     backgroundColor: '#fff',
+  },
+  iconContainer: {
+    padding: 10,
+  },
+  input: {
+    flex: 1,
+    padding: 15,
     fontSize: 16,
   },
   addButton: {

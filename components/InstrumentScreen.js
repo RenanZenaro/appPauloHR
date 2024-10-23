@@ -38,7 +38,7 @@ const InstrumentScreen = ({ route, navigation }) => {
         notes: [], 
         createdAt: new Date().toISOString()
       };
-      const updatedInstruments = [...instruments, newInstrument];
+      const updatedInstruments = [newInstrument, ...instruments];
       setInstruments(updatedInstruments);
       saveInstruments(updatedInstruments);
       setInstrument('');
