@@ -17,7 +17,7 @@ const HomeScreen = ({ navigation }) => {
         if (jsonValue) {
           const items = JSON.parse(jsonValue);
           setList(items);
-          setFilteredList(items); // Inicialmente, mostre todos os itens
+          setFilteredList(items);
         }
       } catch (e) {
         console.error(e);
@@ -28,9 +28,9 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (item.trim() === '') {
-      setFilteredList(list); // Mostrar todos os itens se o texto estiver vazio
+      setFilteredList(list);
     }
-  }, [item]); // Executar quando `item` mudar
+  }, [item]);
 
   const saveItems = async (newList) => {
     try {
@@ -49,7 +49,7 @@ const HomeScreen = ({ navigation }) => {
       };
       const updatedList = [newItem, ...list];
       setList(updatedList);
-      setFilteredList(updatedList); // Atualiza a lista filtrada
+      setFilteredList(updatedList);
       saveItems(updatedList);
       setItem('');
     }
@@ -84,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
   const removeItem = (id) => {
     const updatedList = list.filter((i) => i.id !== id);
     setList(updatedList);
-    setFilteredList(updatedList); // Atualiza a lista filtrada
+    setFilteredList(updatedList);
     saveItems(updatedList);
   };
 
@@ -95,7 +95,7 @@ const HomeScreen = ({ navigation }) => {
           style={styles.input}
           placeholder="Novo Cliente"
           value={item}
-          onChangeText={setItem} // Atualiza o texto no campo de entrada
+          onChangeText={setItem}
         />
         <TouchableOpacity onPress={searchItems} style={styles.iconContainer}>
           <Icon name="search" size={20} color="#888" />
