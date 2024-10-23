@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Luthier",
+    "name": "Paulo Luthier",
     "slug": "snack-a8fc75b8-cb7b-475f-9413-82d10bfe1721",
-    "version": "1.0.5",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logoViolao.png",
     "userInterfaceStyle": "light",
@@ -26,7 +26,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "1573e1a3-29c8-4126-9896-af505ce42ee8"
+        "projectId": "1b37bef3-29fc-4c99-a78f-163d66c96d5e"
       }
     }
   }
