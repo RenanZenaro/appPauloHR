@@ -9,3 +9,15 @@ npx eas build:configure (configurar o eas.json)
 
 baixar o app em apk:
 eas build -p android --profile preview
+
+
+
+const keys = await AsyncStorage.getAllKeys();
+        console.log(keys);
+
+        
+if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir?")) {
+        removeItem(id);
+      }
+    }
