@@ -21,3 +21,615 @@ if (Platform.OS == 'web') {
         removeItem(id);
       }
     }
+
+banco de dados funcinando (falta arrumar o funcionamento dos botoes e adicionar o botao de edição em details e salvar no banco o que for atualizado)
+
+home:
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
+const STORAGE_KEY_CLIENTS = '@clients';
+const STORAGE_KEY_INSTRUMENTS = '@instruments';
+const STORAGE_KEY_NOTES = '@notes';
+
+const HomeScreen = ({ navigation }) => {
+  const [item, setItem] = useState('');
+  const [list, setList] = useState([]);
+  const [filteredList, setFilteredList] = useState([]);
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const jsonValue = await AsyncStorage.getItem(STORAGE_KEY_CLIENTS);
+        if (jsonValue) {
+          const clients = JSON.parse(jsonValue);
+          setList(clients);
+          setFilteredList(clients);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadClients();
+  }, []);
+
+  const saveClients = async (newList) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(newList));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addItem = () => {
+    if (item.trim()) {
+      const newItem = {
+        id: Date.now().toString(),
+        text: item,
+        createdAt: new Date().toLocaleString(),
+      };
+      const updatedList = [newItem, ...list];
+      setList(updatedList);
+      setFilteredList(updatedList);
+      saveClients(updatedList);
+      setItem('');
+    }
+  };
+
+  const searchItems = () => {
+    if (item.trim() !== '') {
+      const filtered = list.filter((i) => i.text.toLowerCase().includes(item.toLowerCase()));
+      setFilteredList(filtered);
+    }
+  };
+
+  const removeClientData = async (clientId) => {
+    try {
+      // Carregar e filtrar os instrumentos relacionados ao cliente específico
+      const instruments = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS)) || [];
+      const filteredInstruments = instruments.filter((instr) => instr.clientId !== clientId);
+      const clientInstruments = instruments.filter((instr) => instr.clientId === clientId);
+  
+      // Salvar a lista de instrumentos atualizada (removendo apenas os instrumentos do cliente excluído)
+      await AsyncStorage.setItem(STORAGE_KEY_INSTRUMENTS, JSON.stringify(filteredInstruments));
+  
+      // Carregar e filtrar as anotações relacionadas aos instrumentos do cliente específico
+      const notes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const filteredNotes = notes.filter((note) => !clientInstruments.some((instr) => instr.id === note.instrumentId));
+  
+      // Salvar a lista de anotações atualizada
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(filteredNotes));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const confirmRemoveItem = (id) => {
+    if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir Este Cliente?")) {
+        removeItem(id);
+      }
+    }
+    Alert.alert(
+      'Confirmação',
+      'Você tem certeza que deseja remover este cliente?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeItem(id),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const removeItem = async (id) => {
+    const updatedList = list.filter((i) => i.id !== id);
+    setList(updatedList);
+    setFilteredList(updatedList);
+    saveClients(updatedList);
+    await removeClientData(id);
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Novo Cliente"
+          value={item}
+          onChangeText={setItem}
+        />
+        <TouchableOpacity onPress={searchItems} style={styles.iconContainer}>
+          <Icon name="search" size={20} color="#888" />
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity style={styles.addButton} onPress={addItem}>
+        <Text style={styles.addButtonText}>Adicionar</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.subtitle}>Clientes Adicionados:</Text>
+
+      <FlatList
+        data={filteredList}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+        renderItem={({ item }) => (
+          <View style={styles.itemContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('Instrument', { item })} style={styles.itemContent}>
+              <Text style={styles.itemText}>{item.text}</Text>
+              <Text style={styles.itemDate}>Criado em: {item.createdAt}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => confirmRemoveItem(item.id)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>Remover</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+  },
+  iconContainer: {
+    padding: 10,
+  },
+  input: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  subtitle: {
+    fontSize: 20,
+    marginVertical: 10,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  itemContainer: {
+    marginBottom: 15,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  itemDate: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 4,
+  },
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    borderRadius: 5,
+    padding: 8,
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  list: {
+    marginTop: 5,
+  },
+});
+
+export default HomeScreen;
+
+
+instrument: import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY_INSTRUMENTS = '@instruments';
+const STORAGE_KEY_NOTES = '@notes';
+
+const InstrumentScreen = ({ route, navigation }) => {
+  const { item } = route.params;  // Cliente recebido da HomeScreen
+  const [instrument, setInstrument] = useState('');
+  const [instrumentsList, setInstrumentsList] = useState([]);
+
+  useEffect(() => {
+    const loadInstruments = async () => {
+      try {
+        const storedInstruments = await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS);
+        if (storedInstruments) {
+          const parsedInstruments = JSON.parse(storedInstruments);
+          const clientInstruments = parsedInstruments.filter((instr) => instr.clientId === item.id);
+          setInstrumentsList(clientInstruments);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadInstruments();
+  }, []);
+
+  const saveInstruments = async (newList) => {
+    try {
+      const allInstruments = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS)) || [];
+      const updatedInstruments = allInstruments.filter((instr) => instr.clientId !== item.id).concat(newList);
+      await AsyncStorage.setItem(STORAGE_KEY_INSTRUMENTS, JSON.stringify(updatedInstruments));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addInstrument = () => {
+    if (instrument.trim()) {
+      const newInstrument = {
+        id: Date.now().toString(),
+        text: instrument,
+        createdAt: new Date().toLocaleString(),
+        clientId: item.id,
+      };
+      const updatedList = [newInstrument, ...instrumentsList];
+      setInstrumentsList(updatedList);
+      saveInstruments(updatedList);
+      setInstrument('');
+    }
+  };
+
+  const confirmRemoveInstrument = (id) => {
+    if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir Este Instrumento?")) {
+        removeInstrument(id);
+      }
+    }
+    Alert.alert(
+      'Confirmação',
+      'Tem certeza de que deseja remover este instrumento?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeInstrument(id),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const removeInstrument = async (id) => {
+    const updatedList = instrumentsList.filter((instr) => instr.id !== id);
+    setInstrumentsList(updatedList);
+    saveInstruments(updatedList);
+
+    try {
+      const notes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const filteredNotes = notes.filter((note) => note.instrumentId !== id);
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(filteredNotes));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Instrumentos de {item.text}</Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Novo Instrumento"
+          value={instrument}
+          onChangeText={setInstrument}
+        />
+        <TouchableOpacity onPress={addInstrument} style={styles.addButton}>
+          <Text style={styles.addButtonText}>Adicionar</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={instrumentsList}
+        keyExtractor={(instr) => instr.id}
+        renderItem={({ item: instr }) => (
+          <View style={styles.itemContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('Detail', { instrument: instr })}>
+              <Text style={styles.itemText}>{instr.text}</Text>
+              <Text style={styles.itemDate}>Criado em: {instr.createdAt}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => confirmRemoveInstrument(instr.id)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>Remover</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  input: {
+    flex: 1,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    marginBottom: 10,
+  },
+  itemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  itemDate: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 4,
+  },
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 8,
+    borderRadius: 5,
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+});
+
+export default InstrumentScreen;
+
+
+details: import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY_NOTES = '@notes';
+
+const DetailScreen = ({ route }) => {
+  const { instrument } = route.params; // Instrumento recebido da InstrumentScreen
+  const [note, setNote] = useState('');
+  const [notesList, setNotesList] = useState([]);
+
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const storedNotes = await AsyncStorage.getItem(STORAGE_KEY_NOTES);
+        if (storedNotes) {
+          const parsedNotes = JSON.parse(storedNotes);
+          const instrumentNotes = parsedNotes.filter((nt) => nt.instrumentId === instrument.id);
+          setNotesList(instrumentNotes);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadNotes();
+  }, []);
+
+  const saveNotes = async (newList) => {
+    try {
+      const allNotes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const updatedNotes = allNotes.filter((nt) => nt.instrumentId !== instrument.id).concat(newList);
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(updatedNotes));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addNote = () => {
+    if (note.trim()) {
+      const newNote = {
+        id: Date.now().toString(),
+        text: note,
+        createdAt: new Date().toLocaleString(),
+        instrumentId: instrument.id,
+      };
+      const updatedList = [newNote, ...notesList];
+      setNotesList(updatedList);
+      saveNotes(updatedList);
+      setNote('');
+    }
+  };
+
+  const confirmRemoveNote = (id) => {
+    if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir Esta Anotação?")) {
+        removeNote(id);
+      }
+    }
+    Alert.alert(
+      'Confirmação',
+      'Tem certeza de que deseja remover esta anotação?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Remover',
+          onPress: () => removeNote(id),
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const removeNote = (id) => {
+    const updatedList = notesList.filter((nt) => nt.id !== id);
+    setNotesList(updatedList);
+    saveNotes(updatedList);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Anotações para {instrument.text}</Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Nova Anotação"
+          value={note}
+          onChangeText={setNote}
+        />
+        <TouchableOpacity onPress={addNote} style={styles.addButton}>
+          <Text style={styles.addButtonText}>Adicionar</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={notesList}
+        keyExtractor={(nt) => nt.id}
+        renderItem={({ item: nt }) => (
+          <View style={styles.itemContainer}>
+            <Text style={styles.itemText}>{nt.text}</Text>
+            <Text style={styles.itemDate}>Criado em: {nt.createdAt}</Text>
+            <TouchableOpacity onPress={() => confirmRemoveNote(nt.id)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>Remover</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  input: {
+    flex: 1,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  itemContainer: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    marginBottom: 10,
+  },
+  itemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  itemDate: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 4,
+  },
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 8,
+    borderRadius: 5,
+    alignSelf: 'flex-end',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+});
+
+export default DetailScreen;
