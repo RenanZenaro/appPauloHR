@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-const STORAGE_KEY = '@notepad_items';
+const STORAGE_KEY_CLIENTS = 'Clientes';
+const STORAGE_KEY_INSTRUMENTS = 'Instrumentos';
+const STORAGE_KEY_NOTES = 'Anotações';
 
 const HomeScreen = ({ navigation }) => {
   const [item, setItem] = useState('');
@@ -11,30 +13,30 @@ const HomeScreen = ({ navigation }) => {
   const [filteredList, setFilteredList] = useState([]);
 
   useEffect(() => {
-    const loadItems = async () => {
+    const loadClients = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
+        const jsonValue = await AsyncStorage.getItem(STORAGE_KEY_CLIENTS);
         if (jsonValue) {
-          const items = JSON.parse(jsonValue);
-          setList(items);
-          setFilteredList(items);
+          const clients = JSON.parse(jsonValue);
+          setList(clients);
+          setFilteredList(clients);
         }
       } catch (e) {
         console.error(e);
       }
     };
-    loadItems();
+    loadClients();
   }, []);
 
   useEffect(() => {
-    if (item.trim() === '') {
+    if (item === '') {
       setFilteredList(list);
     }
-  }, [item]);
+  }, [item, list]);
 
-  const saveItems = async (newList) => {
+  const saveClients = async (newList) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+      await AsyncStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(newList));
     } catch (e) {
       console.error(e);
     }
@@ -50,7 +52,7 @@ const HomeScreen = ({ navigation }) => {
       const updatedList = [newItem, ...list];
       setList(updatedList);
       setFilteredList(updatedList);
-      saveItems(updatedList);
+      saveClients(updatedList);
       setItem('');
     }
   };
@@ -62,7 +64,29 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const removeClientData = async (clientId) => {
+    try {
+      const instruments = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS)) || [];
+      const filteredInstruments = instruments.filter((instr) => instr.clientId !== clientId);
+      const clientInstruments = instruments.filter((instr) => instr.clientId === clientId);
+  
+      await AsyncStorage.setItem(STORAGE_KEY_INSTRUMENTS, JSON.stringify(filteredInstruments));
+  
+      const notes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const filteredNotes = notes.filter((note) => !clientInstruments.some((instr) => instr.id === note.instrumentId));
+  
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(filteredNotes));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const confirmRemoveItem = (id) => {
+    if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir Este Cliente?")) {
+        removeItem(id);
+      }
+    }
     Alert.alert(
       'Confirmação',
       'Você tem certeza que deseja remover este cliente?',
@@ -81,11 +105,12 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const removeItem = (id) => {
+  const removeItem = async (id) => {
     const updatedList = list.filter((i) => i.id !== id);
     setList(updatedList);
     setFilteredList(updatedList);
-    saveItems(updatedList);
+    saveClients(updatedList);
+    await removeClientData(id);
   };
 
   return (

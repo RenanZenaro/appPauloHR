@@ -1,51 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY_PREFIX = '@notepad_instrument_details_';
+const STORAGE_KEY_NOTES = 'Anotações';
 
 const DetailScreen = ({ route }) => {
   const { instrument } = route.params;
   const [note, setNote] = useState('');
-  const [notes, setNotes] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(-1);
+  const [notesList, setNotesList] = useState([]);
+  const [editingNote, setEditingNote] = useState(null);
 
   useEffect(() => {
     const loadNotes = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${instrument.name}`);
-        if (jsonValue) {
-          setNotes(JSON.parse(jsonValue));
+        const storedNotes = await AsyncStorage.getItem(STORAGE_KEY_NOTES);
+        if (storedNotes) {
+          const parsedNotes = JSON.parse(storedNotes);
+          const instrumentNotes = parsedNotes.filter((nt) => nt.instrumentId === instrument.id);
+          setNotesList(instrumentNotes);
         }
       } catch (e) {
         console.error(e);
       }
     };
     loadNotes();
-  }, [instrument.name]);
+  }, []);
 
-  const saveNotes = async (newNotes) => {
+  const saveNotes = async (newList) => {
     try {
-      await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${instrument.name}`, JSON.stringify(newNotes));
+      const allNotes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const updatedNotes = allNotes.filter((nt) => nt.instrumentId !== instrument.id).concat(newList);
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(updatedNotes));
     } catch (e) {
       console.error(e);
     }
   };
 
-  const addNote = () => {
+  const addOrUpdateNote = () => {
     if (note.trim()) {
-      const updatedNotes = editingIndex === -1 ? [note, ...notes] : notes.map((n, i) => (i === editingIndex ? note : n));
-      setNotes(updatedNotes);
-      saveNotes(updatedNotes);
+      let updatedList;
+      if (editingNote) {
+        if (editingNote.text !== note) {
+          updatedList = notesList.map((nt) =>
+            nt.id === editingNote.id
+              ? { ...nt, text: note, updatedAt: new Date().toLocaleString() } : nt
+          );
+        } else {
+          updatedList = notesList;
+        }
+        setEditingNote(null);
+      } else {
+        const newNote = {
+          id: Date.now().toString(),
+          text: note,
+          createdAt: new Date().toLocaleString(),
+          updatedAt: null,
+          instrumentId: instrument.id,
+        };
+        updatedList = [newNote, ...notesList];
+      }
+      setNotesList(updatedList);
+      saveNotes(updatedList);
       setNote('');
-      setEditingIndex(-1);
     }
   };
 
-  const confirmRemoveNote = (index) => {
+  const editNote = (note) => {
+    setNote(note.text);
+    setEditingNote(note);
+  };
+
+  const confirmRemoveNote = (id) => {
+    if (Platform.OS === 'web') {
+      if (confirm("Deseja Excluir Esta Nota?")) {
+        removeNote(id);
+      }
+    }
     Alert.alert(
       'Confirmação',
-      'Você tem certeza que deseja remover esta anotação?',
+      'Você tem certeza que deseja remover esta nota?',
       [
         {
           text: 'Cancelar',
@@ -53,7 +86,7 @@ const DetailScreen = ({ route }) => {
         },
         {
           text: 'Remover',
-          onPress: () => removeNote(index),
+          onPress: () => removeNote(id),
           style: 'destructive',
         },
       ],
@@ -61,20 +94,15 @@ const DetailScreen = ({ route }) => {
     );
   };
 
-  const removeNote = async (index) => {
-    const updatedNotes = notes.filter((_, i) => i !== index);
-    setNotes(updatedNotes);
-    await saveNotes(updatedNotes);
-  };
-
-  const editNote = (index) => {
-    setNote(notes[index]);
-    setEditingIndex(index);
+  const removeNote = async (id) => {
+    const updatedList = notesList.filter((nt) => nt.id !== id);
+    setNotesList(updatedList);
+    saveNotes(updatedList);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.detailText}>{instrument.name}</Text>
+      <Text style={styles.detailText}>{instrument.text}</Text>
 
       <TextInput
         style={styles.input}
@@ -82,23 +110,24 @@ const DetailScreen = ({ route }) => {
         value={note}
         onChangeText={setNote}
       />
-      
-      <TouchableOpacity style={styles.addButton} onPress={addNote}>
-        <Text style={styles.addButtonText}>{editingIndex === -1 ? 'Adicionar Anotação' : 'Atualizar'}</Text>
+
+      <TouchableOpacity style={styles.addButton} onPress={addOrUpdateNote}>
+        <Text style={styles.addButtonText}>{editingNote ? 'Atualizar' : 'Adicionar Anotação'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.additionalStringsTitle}>Anotações Adicionadas:</Text>
+
       <FlatList
-        data={notes}
-        keyExtractor={(note, index) => index.toString()}
-        renderItem={({ item, index }) => (
+        data={notesList}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
           <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>{item}</Text>
+            <Text style={styles.noteText}>{item.text}</Text>
             <View style={styles.noteActions}>
-              <TouchableOpacity onPress={() => editNote(index)}>
+              <TouchableOpacity onPress={() => editNote(item)}>
                 <Text style={styles.editText}>Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => confirmRemoveNote(index)}>
+              <TouchableOpacity onPress={() => confirmRemoveNote(item.id)}>
                 <Text style={styles.removeText}>Remover</Text>
               </TouchableOpacity>
             </View>

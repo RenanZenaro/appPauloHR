@@ -1,31 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY_PREFIX = '@notepad_instruments_';
+const STORAGE_KEY_INSTRUMENTS = 'Instrumentos';
+const STORAGE_KEY_NOTES = 'Anotações';
 
 const InstrumentScreen = ({ route, navigation }) => {
   const { item } = route.params;
   const [instrument, setInstrument] = useState('');
-  const [instruments, setInstruments] = useState([]);
+  const [instrumentsList, setInstrumentsList] = useState([]);
 
   useEffect(() => {
     const loadInstruments = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${item.id}`);
-        if (jsonValue) {
-          setInstruments(JSON.parse(jsonValue));
+        const storedInstruments = await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS);
+        if (storedInstruments) {
+          const parsedInstruments = JSON.parse(storedInstruments);
+          const clientInstruments = parsedInstruments.filter((instr) => instr.clientId === item.id);
+          setInstrumentsList(clientInstruments);
         }
       } catch (e) {
         console.error(e);
       }
     };
     loadInstruments();
-  }, [item.id]);
+  }, []);
 
-  const saveInstruments = async (newInstruments) => {
+  const saveInstruments = async (newList) => {
     try {
-      await AsyncStorage.setItem(`${STORAGE_KEY_PREFIX}${item.id}`, JSON.stringify(newInstruments));
+      const allInstruments = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS)) || [];
+      const updatedInstruments = allInstruments.filter((instr) => instr.clientId !== item.id).concat(newList);
+      await AsyncStorage.setItem(STORAGE_KEY_INSTRUMENTS, JSON.stringify(updatedInstruments));
     } catch (e) {
       console.error(e);
     }
@@ -33,22 +38,28 @@ const InstrumentScreen = ({ route, navigation }) => {
 
   const addInstrument = () => {
     if (instrument.trim()) {
-      const newInstrument = { 
-        name: instrument, 
-        notes: [], 
-        createdAt: new Date().toISOString()
+      const newInstrument = {
+        id: Date.now().toString(),
+        text: instrument,
+        createdAt: new Date().toLocaleString(),
+        clientId: item.id,
       };
-      const updatedInstruments = [newInstrument, ...instruments];
-      setInstruments(updatedInstruments);
-      saveInstruments(updatedInstruments);
+      const updatedList = [newInstrument, ...instrumentsList];
+      setInstrumentsList(updatedList);
+      saveInstruments(updatedList);
       setInstrument('');
     }
   };
 
-  const confirmRemoveInstrument = (index) => {
+  const confirmRemoveInstrument = (id) => {
+    if (Platform.OS == 'web') {
+      if (confirm("Deseja Excluir Este Instrumento?")) {
+        removeInstrument(id);
+      }
+    }
     Alert.alert(
       'Confirmação',
-      'Você tem certeza que deseja remover este instrumento?',
+      'Tem certeza de que deseja remover este instrumento?',
       [
         {
           text: 'Cancelar',
@@ -56,7 +67,7 @@ const InstrumentScreen = ({ route, navigation }) => {
         },
         {
           text: 'Remover',
-          onPress: () => removeInstrument(index),
+          onPress: () => removeInstrument(id),
           style: 'destructive',
         },
       ],
@@ -64,10 +75,18 @@ const InstrumentScreen = ({ route, navigation }) => {
     );
   };
 
-  const removeInstrument = async (index) => {
-    const updatedInstruments = instruments.filter((_, i) => i !== index);
-    setInstruments(updatedInstruments);
-    await saveInstruments(updatedInstruments);
+  const removeInstrument = async (id) => {
+    const updatedList = instrumentsList.filter((instr) => instr.id !== id);
+    setInstrumentsList(updatedList);
+    saveInstruments(updatedList);
+
+    try {
+      const notes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
+      const filteredNotes = notes.filter((note) => note.instrumentId !== id);
+      await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(filteredNotes));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -76,11 +95,11 @@ const InstrumentScreen = ({ route, navigation }) => {
 
       <TextInput
         style={styles.input}
-        placeholder="Adicionar Instrumento"
+        placeholder="Novo Instrumento"
         value={instrument}
         onChangeText={setInstrument}
       />
-      
+
       <TouchableOpacity style={styles.addButton} onPress={addInstrument}>
         <Text style={styles.addButtonText}>Adicionar</Text>
       </TouchableOpacity>
@@ -88,25 +107,20 @@ const InstrumentScreen = ({ route, navigation }) => {
       <Text style={styles.subtitle}>Instrumentos Adicionados:</Text>
 
       <FlatList
-        data={instruments}
-        keyExtractor={(instr, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Detail', { item, instrument: item })}
-          >
-            <View style={styles.cardContent}>
+        data={instrumentsList}
+        keyExtractor={(instr) => instr.id}
+        renderItem={({ item: instr }) => (
+          <View style={styles.itemContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('Detail', { instrument: instr })} style={styles.cardContent}>
               <View>
-                <Text style={styles.instrumentText}>{item.name}</Text>
-                <Text style={styles.createdAtText}>
-                  Criado em: {new Date(item.createdAt).toLocaleString()}
-                </Text>
+                <Text style={styles.instrumentText}>{instr.text}</Text>
+                <Text style={styles.createdAtText}>Criado em: {instr.createdAt}</Text>
               </View>
-              <TouchableOpacity onPress={() => confirmRemoveInstrument(index)}>
-                <Text style={styles.removeText}>Remover</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => confirmRemoveInstrument(instr.id)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>Remover</Text>
+            </TouchableOpacity>
+          </View>
         )}
       />
     </View>
@@ -153,7 +167,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  card: {
+  itemContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 15,
@@ -161,6 +175,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardContent: {
     flexDirection: 'row',
@@ -176,10 +193,12 @@ const styles = StyleSheet.create({
     color: '#777',
     marginTop: 4,
   },
-  removeText: {
+  removeButton: {
     backgroundColor: '#ff4d4d',
     borderRadius: 5,
     padding: 8,
+  },
+  removeButtonText: {
     color: '#fff',
     fontWeight: 'bold',
   },
