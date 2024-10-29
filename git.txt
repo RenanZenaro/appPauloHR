@@ -26,4 +26,5 @@ npm install -g expo-cli
 npx eas login (fazer o login na conta do expo)
 npx eas build:configure (configurar o eas.json)
 
-gerar o apk: npx eas build -p android --profile preview
+baixar o app em apk:
+eas build -p android --profile preview
