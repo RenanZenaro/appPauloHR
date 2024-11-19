@@ -103,39 +103,49 @@ const DetailScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.detailText}>{instrument.text}</Text>
-
+  
       <TextInput
         style={styles.input}
         placeholder="Adicionar anotação"
         value={note}
         onChangeText={setNote}
+        multiline={true}
       />
-
+  
       <TouchableOpacity style={styles.addButton} onPress={addOrUpdateNote}>
-        <Text style={styles.addButtonText}>{editingNote ? 'Atualizar' : 'Adicionar Anotação'}</Text>
+        <Text style={styles.addButtonText}>
+          {editingNote ? 'Atualizar' : 'Adicionar Anotação'}
+        </Text>
       </TouchableOpacity>
-
-      <Text style={styles.additionalStringsTitle}>Anotações Adicionadas:</Text>
-
+  
+      <Text style={styles.subtitle}>Anotações Adicionadas:</Text>
+  
       <FlatList
         data={notesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>{item.text}</Text>
-            <View style={styles.noteActions}>
-              <TouchableOpacity onPress={() => editNote(item)}>
-                <Text style={styles.editText}>Editar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => confirmRemoveNote(item.id)}>
-                <Text style={styles.removeText}>Remover</Text>
-              </TouchableOpacity>
+            <View style={styles.itemContent}>
+              <Text style={styles.itemText}>{item.text}</Text>
+              <View style={styles.noteActions}>
+                <TouchableOpacity onPress={() => editNote(item)} style={styles.editButton}>
+                  <Text style={styles.editText}>Editar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => confirmRemoveNote(item.id)} style={styles.removeButton}>
+                  <Text style={styles.removeButtonText}>Remover</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.itemDate}>
+                {item.updatedAt
+                  ? `Atualizado em: ${item.updatedAt}`
+                  : `Criado em: ${item.createdAt}`}
+              </Text>
             </View>
           </View>
         )}
       />
     </View>
-  );
+  );  
 };
 
 const styles = StyleSheet.create({
@@ -158,6 +168,8 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: '#fff',
     fontSize: 16,
+    height: 80,
+    textAlignVertical: 'top',
   },
   addButton: {
     backgroundColor: '#4CAF50',
@@ -172,37 +184,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  additionalStringsTitle: {
+  subtitle: {
     fontSize: 20,
     marginVertical: 10,
     fontWeight: 'bold',
     color: '#333',
   },
   noteContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    marginBottom: 15,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
   },
-  noteText: {
-    fontSize: 17,
+  itemContent: {
     flex: 1,
+  },
+  itemText: {
+    fontSize: 18,
     color: '#333',
-    marginRight: 10,
+    marginBottom: 30,
   },
   noteActions: {
     flexDirection: 'row',
+    marginBottom: 10,
+  },
+  editButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 5,
+    padding: 8,
+    marginRight: 10,
   },
   editText: {
-    color: '#3498db',
-    marginRight: 10,
+    color: '#fff',
     fontWeight: 'bold',
   },
-  removeText: {
-    color: '#ff4d4d',
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    borderRadius: 5,
+    padding: 8,
+  },
+  removeButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  itemDate: {
+    fontSize: 14,
+    color: '#777',
   },
 });
 

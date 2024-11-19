@@ -180,9 +180,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
   },
   instrumentText: {
     fontSize: 18,

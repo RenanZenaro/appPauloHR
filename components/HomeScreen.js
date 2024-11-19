@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
   },
   itemContent: {
     flex: 1,
+    marginRight: 10,
   },
   itemText: {
     fontSize: 18,
