@@ -40,14 +40,10 @@ const DetailScreen = ({ route }) => {
     if (note.trim()) {
       let updatedList;
       if (editingNote) {
-        if (editingNote.text !== note) {
-          updatedList = notesList.map((nt) =>
-            nt.id === editingNote.id
-              ? { ...nt, text: note, updatedAt: new Date().toLocaleString() } : nt
-          );
-        } else {
-          updatedList = notesList;
-        }
+        updatedList = [
+          { ...editingNote, text: note, updatedAt: new Date().toLocaleString() },
+          ...notesList.filter((nt) => nt.id !== editingNote.id),
+        ];
         setEditingNote(null);
       } else {
         const newNote = {
@@ -96,6 +92,10 @@ const DetailScreen = ({ route }) => {
 
   const removeNote = async (id) => {
     const updatedList = notesList.filter((nt) => nt.id !== id);
+    if (editingNote && editingNote.id === id) {
+      setNote('');
+      setEditingNote(null);
+    }
     setNotesList(updatedList);
     saveNotes(updatedList);
   };
