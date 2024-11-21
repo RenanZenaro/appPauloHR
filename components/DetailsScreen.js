@@ -38,12 +38,18 @@ const DetailScreen = ({ route }) => {
 
   const addOrUpdateNote = () => {
     if (note.trim()) {
-      let updatedList;
       if (editingNote) {
-        updatedList = [
+        if (editingNote.text === note) {
+          setEditingNote(null);
+          setNote('');
+          return;
+        }
+        const updatedList = [
           { ...editingNote, text: note, updatedAt: new Date().toLocaleString() },
           ...notesList.filter((nt) => nt.id !== editingNote.id),
         ];
+        setNotesList(updatedList);
+        saveNotes(updatedList);
         setEditingNote(null);
       } else {
         const newNote = {
@@ -53,10 +59,10 @@ const DetailScreen = ({ route }) => {
           updatedAt: null,
           instrumentId: instrument.id,
         };
-        updatedList = [newNote, ...notesList];
+        const updatedList = [newNote, ...notesList];
+        setNotesList(updatedList);
+        saveNotes(updatedList);
       }
-      setNotesList(updatedList);
-      saveNotes(updatedList);
       setNote('');
     }
   };
