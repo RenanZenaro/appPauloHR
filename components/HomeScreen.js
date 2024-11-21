@@ -32,6 +32,11 @@ const HomeScreen = ({ navigation }) => {
     if (item === '') {
       setFilteredList(list);
     }
+    const unsubscribe = navigation.addListener('focus', () => {
+      setItem('');
+      setFilteredList(list);
+    });
+    return unsubscribe;
   }, [item, list]);
 
   const saveClients = async (newList) => {
