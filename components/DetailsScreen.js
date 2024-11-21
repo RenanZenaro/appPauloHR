@@ -103,7 +103,7 @@ const DetailScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.detailText}>{instrument.text}</Text>
-  
+
       <TextInput
         style={styles.input}
         placeholder="Adicionar anotação"
@@ -111,41 +111,43 @@ const DetailScreen = ({ route }) => {
         onChangeText={setNote}
         multiline={true}
       />
-  
+
       <TouchableOpacity style={styles.addButton} onPress={addOrUpdateNote}>
         <Text style={styles.addButtonText}>
           {editingNote ? 'Atualizar' : 'Adicionar Anotação'}
         </Text>
       </TouchableOpacity>
-  
+
       <Text style={styles.subtitle}>Anotações Adicionadas:</Text>
-  
-      <FlatList
-        data={notesList}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.noteContainer}>
-            <View style={styles.itemContent}>
-              <Text style={styles.itemText}>{item.text}</Text>
-              <View style={styles.noteActions}>
-                <TouchableOpacity onPress={() => editNote(item)} style={styles.editButton}>
-                  <Text style={styles.editText}>Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => confirmRemoveNote(item.id)} style={styles.removeButton}>
-                  <Text style={styles.removeButtonText}>Remover</Text>
-                </TouchableOpacity>
+
+      <View style={styles.listContainer}>
+        <FlatList
+          data={notesList}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.noteContainer}>
+              <View style={styles.itemContent}>
+                <Text style={styles.itemText}>{item.text}</Text>
+                <View style={styles.noteActions}>
+                  <TouchableOpacity onPress={() => editNote(item)} style={styles.editButton}>
+                    <Text style={styles.editText}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => confirmRemoveNote(item.id)} style={styles.removeButton}>
+                    <Text style={styles.removeButtonText}>Remover</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.itemDate}>
+                  {item.updatedAt
+                    ? `Atualizado em: ${item.updatedAt}`
+                    : `Criado em: ${item.createdAt}`}
+                </Text>
               </View>
-              <Text style={styles.itemDate}>
-                {item.updatedAt
-                  ? `Atualizado em: ${item.updatedAt}`
-                  : `Criado em: ${item.createdAt}`}
-              </Text>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      </View>
     </View>
-  );  
+  );
 };
 
 const styles = StyleSheet.create({
@@ -170,6 +172,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     height: 80,
     textAlignVertical: 'top',
+    flexGrow: 0,
   },
   addButton: {
     backgroundColor: '#4CAF50',
@@ -189,6 +192,10 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontWeight: 'bold',
     color: '#333',
+  },
+  listContainer: {
+    flex: 1,
+    marginBottom: 20,
   },
   noteContainer: {
     marginBottom: 15,
