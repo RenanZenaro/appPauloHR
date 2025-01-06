@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import auth from '@react-native-firebase/auth'
-import firestore from '@react-native-firebase/firestore';
 
 const STORAGE_KEY_CLIENTS = 'Clientes';
 const STORAGE_KEY_INSTRUMENTS = 'Instrumentos';
@@ -13,21 +11,6 @@ const HomeScreen = ({ navigation }) => {
   const [item, setItem] = useState('');
   const [list, setList] = useState([]);
   const [filteredList, setFilteredList] = useState([]);
-  const [userData, setUserData] = useState(null);
-
-const fetchUserData = async (userId) => {
-  try {
-    const userDoc = await firestore().collection('users').doc(userId).get();
-    if (userDoc.exists) {
-      console.log('Dados do usuário:', userDoc.data());
-      return userDoc.data(); // Retorna os dados do Firestore
-    } else {
-      console.log('Usuário não encontrado.');
-    }
-  } catch (error) {
-    console.error('Erro ao buscar dados do usuário:', error);
-  }
-};
 
   useEffect(() => {
     const loadClients = async () => {
@@ -43,11 +26,6 @@ const fetchUserData = async (userId) => {
       }
     };
     loadClients();
-
-    const userId = auth().currentUser?.uid;
-    if (userId) {
-      fetchUserData(userId).then(data => setUserData(data));
-    };
   }, []);
 
   useEffect(() => {
@@ -96,12 +74,12 @@ const fetchUserData = async (userId) => {
       const instruments = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_INSTRUMENTS)) || [];
       const filteredInstruments = instruments.filter((instr) => instr.clientId !== clientId);
       const clientInstruments = instruments.filter((instr) => instr.clientId === clientId);
-  
+
       await AsyncStorage.setItem(STORAGE_KEY_INSTRUMENTS, JSON.stringify(filteredInstruments));
-  
+
       const notes = JSON.parse(await AsyncStorage.getItem(STORAGE_KEY_NOTES)) || [];
       const filteredNotes = notes.filter((note) => !clientInstruments.some((instr) => instr.id === note.instrumentId));
-  
+
       await AsyncStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(filteredNotes));
     } catch (e) {
       console.error(e);
@@ -142,6 +120,11 @@ const fetchUserData = async (userId) => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backupButton}
+        onPress={() => navigation.navigate('Backup')}>
+        <Text style={styles.backupButtonText}>Backup</Text>
+      </TouchableOpacity>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -256,6 +239,20 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: 5,
+  },
+  backupButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 30,
+    marginLeft: 270,
+    alignItems: 'center',
+  },
+  backupButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
