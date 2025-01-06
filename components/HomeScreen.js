@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import auth from '@react-native-firebase/auth'
+import firestore from '@react-native-firebase/firestore';
 
 const STORAGE_KEY_CLIENTS = 'Clientes';
 const STORAGE_KEY_INSTRUMENTS = 'Instrumentos';
@@ -11,6 +13,21 @@ const HomeScreen = ({ navigation }) => {
   const [item, setItem] = useState('');
   const [list, setList] = useState([]);
   const [filteredList, setFilteredList] = useState([]);
+  const [userData, setUserData] = useState(null);
+
+const fetchUserData = async (userId) => {
+  try {
+    const userDoc = await firestore().collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      console.log('Dados do usuário:', userDoc.data());
+      return userDoc.data(); // Retorna os dados do Firestore
+    } else {
+      console.log('Usuário não encontrado.');
+    }
+  } catch (error) {
+    console.error('Erro ao buscar dados do usuário:', error);
+  }
+};
 
   useEffect(() => {
     const loadClients = async () => {
@@ -26,6 +43,11 @@ const HomeScreen = ({ navigation }) => {
       }
     };
     loadClients();
+
+    const userId = auth().currentUser?.uid;
+    if (userId) {
+      fetchUserData(userId).then(data => setUserData(data));
+    };
   }, []);
 
   useEffect(() => {
