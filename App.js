@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Menu, Provider, IconButton } from 'react-native-paper';
 
 import HomeScreen from './components/HomeScreen';
@@ -23,7 +23,7 @@ const App = () => {
         <Stack.Navigator>
           <Stack.Screen name="Home" component={HomeScreen} options={({ navigation }) => ({
             title: 'Página Inicial', headerRight: () => (
-              <View style={styles.menuContainer}>
+              <View>
                 <Menu visible={menuVisible} onDismiss={closeMenu} anchor={
                   <IconButton icon="dots-vertical" size={24} onPress={openMenu} />
                 }>
@@ -44,11 +44,5 @@ const App = () => {
     </Provider>
   );
 };
-
-const styles = StyleSheet.create({
-  menuContainer: {
-    marginRight: 10,
-  },
-});
 
 export default App;
