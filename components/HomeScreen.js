@@ -120,11 +120,6 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backupButton}
-        onPress={() => navigation.navigate('Backup')}>
-        <Text style={styles.backupButtonText}>Backup</Text>
-      </TouchableOpacity>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -239,20 +234,6 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: 5,
-  },
-  backupButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 30,
-    marginLeft: 270,
-    alignItems: 'center',
-  },
-  backupButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 });
 
